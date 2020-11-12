@@ -98,7 +98,7 @@ export async function GetCards(args: any, cachePath?: string){
             break;
         }
     }
-    if (cachePath) fs.unlinkSync(cachePath);
+    if (cachePath) utils.RmDir(cachePath);
     let list:any[] = [];
     lists.forEach(l=>{
         list = list.concat(l);

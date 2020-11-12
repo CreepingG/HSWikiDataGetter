@@ -284,6 +284,22 @@ export function MkDirs(dirname:string) {
         fs.mkdirSync(dirname);
     }
 }
+/* 删除目录及下属文件*/
+export function RmDir(dirPath:string) {
+    let files = [];
+    if( fs.existsSync(dirPath) ) {
+        files = fs.readdirSync(dirPath);
+        files.forEach(fileName => {
+            let filePath = path.resolve(dirPath, fileName);
+            if(fs.statSync(filePath).isDirectory()) {
+                RmDir(filePath);
+            } else {
+                fs.unlinkSync(filePath);
+            }
+        });
+        fs.rmdirSync(dirPath);
+    }
+}
 /** 卡牌的基本信息 */
 export interface CardHeader{
     id:number, 
