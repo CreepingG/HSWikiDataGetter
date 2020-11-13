@@ -65,10 +65,10 @@ async function MakePage(){
         Battlenet.MakeJSON();
     }*/
 
-    /*if (await hsjson.DownloadAll()){
+    if (await hsjson.DownloadAll()){
         hsjson.DiffAll();
         hsjson.MakeJSON();
-    }*/
+    }
     
     //MakePage();
 

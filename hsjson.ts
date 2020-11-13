@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import * as utils from './utils';
 import Excel from 'exceljs';
 
@@ -12,32 +12,35 @@ function GetLocalVersion(){
     return <string>fs.readdirSync(dataDir).filter(s=>s.match('\\d+')).sort().pop();
 }
 /** 请求latest对应的版本号 */
-async function GetOnlineVersion(){
+async function GetOnlineVersion():Promise<string>{
     console.log('获取版本号');
-    return '65614';
-    let response;
-    response = await axios({
+    //return '65614';
+    let config:AxiosRequestConfig = {
         method: 'get',
-        url: 'https://api.hearthstonejson.com/v1/latest/zhCN/cards.json',
-        responseType: 'stream',
-    });
-    /*while (1) {
-        try{
-            response = await axios({
-                method: 'get',
-                url: 'https://api.hearthstonejson.com/v1/latest/zhCN/cards.json',
-                responseType: 'stream',
-                timeout: 30 * 1000
-            });
+        url: 'https://api.hearthstonejson.com/v1/latest/',
+        headers: {
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'accept-encoding': 'gzip, deflate, br',
+            'accept-language': 'zh-CN,zh;q=0.9',
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'none',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
         }
-        catch(e){
-            if (e.code=='ECONNABORTED'){
-                console.log('try again');
-                continue;
-            }
-            throw e;
+    };
+    let response;
+    try{
+        response = await axios({timeout: 15 * 1000, ...config});
+    }
+    catch(e){
+        if (e.code=='ECONNABORTED'){
+            return await GetOnlineVersion(); //想不通，用while(1)循环就会导致请求一直没响应，用递归就没问题
         }
-    }*/
+        throw e;
+    }
     const path: string = (<any>response).request['path'] ?? '';
     console.log(path);
     return path.split('/')[2] ?? '';
@@ -51,7 +54,9 @@ async function IsArrayFileComplete(filePath:string) {
     fs.readSync(fd, buf, 0, 8, stat.size - 8);
     return buf.toString().endsWith('}]');
 }
-
+/** 下载文件的最新版本
+ * @returns 仅当文件原本不存在，且成功下载时，返回true
+ */
 async function DownloadLatest(url:string, fileName:string, folder:string){
     let filePath = path.resolve(dataDir, folder, fileName);
     if (fs.existsSync(filePath)){
@@ -72,6 +77,9 @@ async function DownloadLatest(url:string, fileName:string, folder:string){
     console.warn('下载失败：资源不存在');
     return false;
 }
+/** 下载所有所需的json
+ * @returns 至少有一个文件被更新时，返回true
+ */
 export async function DownloadAll(){
     let version = await GetOnlineVersion();
     if (isNaN(parseInt(version))){
@@ -82,7 +90,7 @@ export async function DownloadAll(){
         DownloadLatest('https://api.hearthstonejson.com/v1/enums.json', 'enums.json', version),
         ...locales.map(lang=>DownloadLatest('https://api.hearthstonejson.com/v1/latest/' + lang + '/cards.json', lang + '.json', version))
     ]);
-    return true;
+    return result.some(b=>b);
 }
 function ReadAllData(specificVersion?:string):any[]{
     let version = specificVersion ?? GetLocalVersion();
