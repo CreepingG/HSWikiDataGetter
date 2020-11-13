@@ -72,7 +72,7 @@ async function MakePage(){
     
     //MakePage();
 
-    //utils.SplitDownloadList(500);
+    //utils.SplitDownloadList(250);
     //await utils.DownloadAll();
     //await utils.DownloadAllRedo();
     //await utils.DownloadAll(utils.File2List('img_err.txt'));

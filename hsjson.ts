@@ -14,7 +14,7 @@ function GetLocalVersion(){
 /** 请求latest对应的版本号 */
 async function GetOnlineVersion(){
     console.log('获取版本号');
-    //return '63160';
+    return '65614';
     let response;
     response = await axios({
         method: 'get',
@@ -58,6 +58,7 @@ async function DownloadLatest(url:string, fileName:string, folder:string){
         console.log('文件已存在:\n\t' + filePath);
         return false;
     }
+    console.log('开始下载:\n\t' + url);
     let success = await utils.Download(url, filePath);
     if (success) {
         if (IsArrayFileComplete(filePath)){
@@ -81,7 +82,7 @@ export async function DownloadAll(){
         DownloadLatest('https://api.hearthstonejson.com/v1/enums.json', 'enums.json', version),
         ...locales.map(lang=>DownloadLatest('https://api.hearthstonejson.com/v1/latest/' + lang + '/cards.json', lang + '.json', version))
     ]);
-    return result.some(b=>b);
+    return true;
 }
 function ReadAllData(specificVersion?:string):any[]{
     let version = specificVersion ?? GetLocalVersion();
@@ -119,7 +120,8 @@ export function MakeJSON(){
     let cnt = 0;
     data.forEach(card=>{
         fs.writeFileSync(path.resolve(jsonPath, 'card_1_' + card.id + '.json'), JSON.stringify(card));
-        if(cnt%1000===0) console.log(++cnt + '/' + length);
+        ++cnt;
+        if(cnt%1000===0) console.log(cnt + '/' + length);
     });
     fs.copyFileSync(path.resolve(jsonPath, 'enums.json'), path.resolve(dataDir, version, 'enums.json'))
 }
@@ -221,10 +223,19 @@ export function DiffAll(){
     console.log('file has been written to:\n\t' + xlsxPath);
     
 
-    let img_list = [...list_new, ...list_change.map(info=>info[0])].map(id => [
-        path.resolve('img/hsjson', 'card ' + id + '.png'),
-        'https://art.hearthstonejson.com/v1/render/latest/zhCN/512x/' + id + '.png'
-    ]);
+    let img_list:string[][] = [];
+    [...list_new, ...list_change.map(info=>info[0])].forEach(id => {
+        img_list.push([
+            path.resolve('img/hsjson', 'Card_' + id + '.png'),
+            'https://art.hearthstonejson.com/v1/render/latest/zhCN/512x/' + id + '.png'
+        ]);
+    });
+    list_new.forEach(id => {
+        img_list.push([
+            path.resolve('img/art', 'Art_' + id + '.png'),
+            'https://art.hearthstonejson.com/v1/orig/' + id + '.png'
+        ]);
+    });
     utils.List2File('imgList.txt', img_list);
     console.log('file has been written to:\n\t.\\imgList.txt');
 }
