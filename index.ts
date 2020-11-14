@@ -3,11 +3,11 @@ import Excel from 'exceljs';
 import * as utils from './utils';
 import * as Battlenet from './battlenet';
 import {Key} from './battlenet';
-import * as hsjson from './hsjson';
+import * as HsJson from './hsjson';
 
 async function MakePage(){
     const exclusion = ['德鲁伊','猎人','法师','圣骑士','牧师','潜行者','萨满祭司','术士','战士', '法术伤害', '变形术：??','[TEMP]'];
-    let list = [...Battlenet.Headers(), ...hsjson.Headers()];
+    let list = [...Battlenet.Headers(), ...HsJson.Headers()];
     let pageMap:{[k:string]:Set<string>} = {};
     let wb = new Excel.Workbook();
     let ws = wb.addWorksheet('1');
@@ -54,9 +54,9 @@ async function MakePage(){
 }
 
 (async function main(){
-    //console.log(await battlenet.GetOneCard(46430));
-
+    //console.log(await Battlenet.GetOneCard(64484));
     /*let changed = await Promise.all([Battlenet.Changed(Key.all), Battlenet.Changed(Key.battlegrounds)]);
+    changed[0] = true;
     if (changed[0] || changed[1]){
         await Battlenet.DownloadMetadata();
         if (changed[0]) await Battlenet.DownloadAllLanguage(Key.all);
@@ -64,11 +64,11 @@ async function MakePage(){
         Battlenet.DiffAll();
         Battlenet.MakeJSON();
     }*/
-
-    if (await hsjson.DownloadAll()){
-        hsjson.DiffAll();
-        hsjson.MakeJSON();
-    }
+    /*
+    if (await HsJson.DownloadAll()){
+        HsJson.DiffAll();
+        HsJson.MakeJSON();
+    }*/
     
     //MakePage();
 

@@ -17,21 +17,21 @@ const query_args = {
     [Key.all]: {collectible: '0,1'},
     [Key.battlegrounds]: {gameMode: 'battlegrounds'}
 };
-const date = utils.FormatDate(new Date(), 'yyyyMMdd');
-const dataDir = path.resolve('data', 'battlenet');
+const Today = utils.FormatDate(new Date(), 'yyyyMMdd');
+const DataDir = path.resolve('data', 'battlenet');
 function NewDataDir(){
-    let dir = path.resolve(dataDir, date);
+    let dir = path.resolve(DataDir, Today);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
     return dir;
 }
 function GetLatestDataDirs(){
-    let list = fs.readdirSync(dataDir).filter(s=>s.match('\\d+')).sort();
+    let list = fs.readdirSync(DataDir).filter(s=>s.match('\\d+')).sort();
     if (list.length<=0){
-        let dir = path.resolve(dataDir, date);
+        let dir = path.resolve(DataDir, Today);
         fs.mkdirSync(dir);
-        list.push(date);
+        list.push(Today);
     }
-    return list.map(date => path.resolve(dataDir, date));
+    return list.map(date => path.resolve(DataDir, date));
 }
 //#region Download
 function DownloadData(url: string, filename: string){
@@ -78,10 +78,15 @@ export async function GetCards(args: any, cachePath?: string){
             console.log(page);
             let filePath = path.resolve(cachePath ?? '', page + '.json');
             console.log(filePath);
-            let pageData = cachePath && fs.existsSync(filePath) 
-                ? JSON.parse(fs.readFileSync(filePath).toString()) 
-                : await GetData('cards' + MakeUrlParams({...args, page}));
-            console.log(MakeUrlParams({...args, page}));
+            let pageData;
+            if (cachePath && fs.existsSync(filePath)){
+                pageData = JSON.parse(fs.readFileSync(filePath).toString());
+            }
+            else{
+                let params = MakeUrlParams({...args, page})
+                console.log(params);
+                pageData = await GetData('cards' + params);
+            }
             lists[page - 1] = Fix(pageData['cards']);
             console.log(page + '/' + cnt);
             if (cachePath) fs.writeFileSync(filePath, JSON.stringify(pageData));
@@ -92,7 +97,7 @@ export async function GetCards(args: any, cachePath?: string){
             }
             catch(err){
                 console.log(err);
-                utils.Wait(2000);
+                await utils.Wait(2000);
                 continue;
             }
             break;
@@ -169,19 +174,13 @@ export async function Changed(key: Key){
     let args:any = {...query_args[key]};
     let filename = key;
     let oldDir = <string>GetLatestDataDirs().pop();
-    if (oldDir.endsWith(date)){
+    if (oldDir.endsWith(Today)){
         console.log('already checked today.');
         return true;
     }
-    let oldPath = path.resolve(oldDir, filename.toString() + '.json');
-    if (!fs.existsSync(oldPath)){
-        console.log('missing file: ' + oldPath);
-        return true;
-    }
-    console.log('compare with ' + oldPath);
     args = {...args};
     args.locale = 'zh_CN';
-    let oldData = <any[]>JSON.parse(fs.readFileSync(oldPath).toString());
+    let oldData = <any[]>ReadLatest(filename);
     let oldCnt = oldData.length;
     let newData = await GetData('cards' + MakeUrlParams(args));
     let newCnt = newData.cardCount;
@@ -234,13 +233,13 @@ function ReadSingle(filePath: string){
     let result = JSON.parse(fs.readFileSync(filePath).toString());
     return result;
 }
-function ReadLatest(name: string){
+function ReadLatest(name: string, offset: number = 0){
     if (!name.endsWith('.json')) name = name + '.json';
     let dirs = GetLatestDataDirs();
     while (dirs.length>0){
         let dir = <string>dirs.pop();
         let filePath = path.resolve(dir, name);
-        if (fs.existsSync(filePath)){
+        if (fs.existsSync(filePath) && offset-- === 0){
             return ReadSingle(filePath);
         }
     }
@@ -280,7 +279,7 @@ async function GetRelated(list: any[]){
     }
     return Array.from(needIds.values());
 }
-export function DiffAll(){
+export function DiffAll(date?:string){
     function CardDifferent(a:any, b:any):string[]|null{
         for (let k of ['name', 'text', 'flavorText', 'manaCost', 'attack', 'health', 'cardTypeId', 'cardSetId', 'rarityId', 'classId', 'minionTypeId']){
             if (utils.ValueDifferent(a[k], b[k])) {
@@ -289,9 +288,7 @@ export function DiffAll(){
         }
         return null;
     }
-    let dirs = GetLatestDataDirs();
-    let curDir = <string>dirs.pop();
-    let prevDir = <string>dirs.pop();
+    let curDir = path.resolve(DataDir, date ?? Today);
     for (let filename in Key){
         let curPath = path.resolve(curDir, filename + '.json');
         if (!fs.existsSync(curPath)){
@@ -299,7 +296,7 @@ export function DiffAll(){
             continue;
         }
         let cur:any[] = ReadSingle(curPath);
-        let prev:any[] = ReadSingle(path.resolve(prevDir, filename + '.json'));
+        let prev:any[] = ReadLatest(filename, 1);
         let map_cur = utils.MapBy(cur, 'id');
         let map_prev = utils.MapBy(prev, 'id');
         let set_cur = new Set(cur.map(c=>c.id));
@@ -314,30 +311,34 @@ export function DiffAll(){
         console.log('修改：' + list_change.length);
 
         let diffPath = path.resolve(curDir, filename + '_diff.json');
-        fs.writeFileSync(diffPath, JSON.stringify({
-            new: list_new,
-            remove: list_remove,
-            change: list_change.map(info=>info[0]),
-        }));
-        console.log('file has been written to:\n\t' + diffPath)
-
-
-        let wb = new Excel.Workbook();
-        let ws = wb.addWorksheet('new');
-        ws.addRow(['id', 'name']);
-        list_new.forEach(id=> ws.addRow([id, map_cur[id].name]));
-
-        ws = wb.addWorksheet('removed');
-        ws.addRow(['id', 'name']);
-        list_remove.forEach(id=> ws.addRow([id, map_prev[id].name]));
-
-        ws = wb.addWorksheet('changed');
-        ws.addRow(['id', 'name', 'key', 'from', 'to']);
-        list_change.forEach(info=> ws.addRow(info));
+        if (!fs.existsSync(diffPath)){
+            fs.writeFileSync(diffPath, JSON.stringify({
+                new: list_new,
+                remove: list_remove,
+                change: list_change.map(info=>info[0]),
+            }));
+            console.log('file has been written to:\n\t' + diffPath)
+        }
+        fs.appendFileSync('./删除.txt', list_remove.map(id=>'Card/' + id + '\n' + 'Data:Card/' + id + '.json\n').join(''));
 
         let xlsxPath = path.resolve(curDir, filename + '_diff.xlsx');
-        wb.xlsx.writeFile(xlsxPath);
-        console.log('file has been written to:\n\t' + xlsxPath)
+        if (!fs.existsSync(xlsxPath)){
+            let wb = new Excel.Workbook();
+            let ws = wb.addWorksheet('new');
+            ws.addRow(['id', 'name']);
+            list_new.forEach(id=> ws.addRow([id, map_cur[id].name]));
+    
+            ws = wb.addWorksheet('removed');
+            ws.addRow(['id', 'name']);
+            list_remove.forEach(id=> ws.addRow([id, map_prev[id].name]));
+    
+            ws = wb.addWorksheet('changed');
+            ws.addRow(['id', 'name', 'key', 'from', 'to']);
+            list_change.forEach(info=> ws.addRow(info));
+    
+            wb.xlsx.writeFile(xlsxPath);
+            console.log('file has been written to:\n\t' + xlsxPath)
+        }
     }
     MakeImgListForDiff();
 }

@@ -205,31 +205,35 @@ export function DiffAll(){
     console.log('修改：' + list_change.length);
 
     let diffPath = path.resolve(curDir, 'diff.json');
-    fs.writeFileSync(diffPath, JSON.stringify({
-        new: list_new,
-        remove: list_remove,
-        change: list_change.map(info=>info[0]),
-    }));
-    console.log('file has been written to:\n\t' + diffPath)
+    if (!fs.existsSync(diffPath)){
+        fs.writeFileSync(diffPath, JSON.stringify({
+            new: list_new,
+            remove: list_remove,
+            change: list_change.map(info=>info[0]),
+        }));
+        console.log('file has been written to:\n\t' + diffPath)
+    }
 
-
-    let wb = new Excel.Workbook();
-    let ws = wb.addWorksheet('new');
-    ws.addRow(['id', 'name']);
-    list_new.forEach(id=> ws.addRow([id, map_cur[id].name]));
-
-    ws = wb.addWorksheet('removed');
-    ws.addRow(['id', 'name']);
-    list_remove.forEach(id=> ws.addRow([id, map_prev[id].name]));
-
-    ws = wb.addWorksheet('changed');
-    ws.addRow(['id', 'name', 'key', 'from', 'to']);
-    list_change.forEach(info=> ws.addRow(info));
+    fs.appendFileSync('./删除.txt', list_remove.map(id=>'Data:Card/' + id + '.json\n').join(''));
 
     let xlsxPath = path.resolve(curDir, 'diff.xlsx');
-    wb.xlsx.writeFile(xlsxPath);
-    console.log('file has been written to:\n\t' + xlsxPath);
-    
+    if (!fs.existsSync(xlsxPath)){
+        let wb = new Excel.Workbook();
+        let ws = wb.addWorksheet('new');
+        ws.addRow(['id', 'name']);
+        list_new.forEach(id=> ws.addRow([id, map_cur[id].name]));
+
+        ws = wb.addWorksheet('removed');
+        ws.addRow(['id', 'name']);
+        list_remove.forEach(id=> ws.addRow([id, map_prev[id].name]));
+
+        ws = wb.addWorksheet('changed');
+        ws.addRow(['id', 'name', 'key', 'from', 'to']);
+        list_change.forEach(info=> ws.addRow(info));
+
+        wb.xlsx.writeFile(xlsxPath);
+        console.log('file has been written to:\n\t' + xlsxPath);
+    }
 
     let img_list:string[][] = [];
     [...list_new, ...list_change.map(info=>info[0])].forEach(id => {
