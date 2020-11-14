@@ -319,7 +319,7 @@ export function DiffAll(date?:string){
             }));
             console.log('file has been written to:\n\t' + diffPath)
         }
-        fs.appendFileSync('./删除.txt', list_remove.map(id=>'Card/' + id + '\n' + 'Data:Card/' + id + '.json\n').join(''));
+        fs.appendFileSync('./删除.txt', list_remove.map(id=>'Data:Card/' + id + '.json\n').join(''));
 
         let xlsxPath = path.resolve(curDir, filename + '_diff.xlsx');
         if (!fs.existsSync(xlsxPath)){
