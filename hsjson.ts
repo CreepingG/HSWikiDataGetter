@@ -6,7 +6,7 @@ import Excel from 'exceljs';
 
 const dataDir = path.resolve('data', 'hsjson');
 const locales:ReadonlyArray<string> = ['zhCN','zhTW', 'enUS' ,'jaJP'];
-const locale_keys:ReadonlyArray<string> = ['name', 'text', 'flavor'];
+const locale_keys:ReadonlyArray<string> = ['name', 'text', 'collectionText', 'flavor'];
 if (!fs.existsSync(dataDir)) utils.MkDirs(dataDir);
 function GetLocalVersion(){
     return <string>fs.readdirSync(dataDir).filter(s=>s.match('\\d+')).sort().pop();
@@ -90,7 +90,7 @@ export async function DownloadAll(){
         DownloadLatest('https://api.hearthstonejson.com/v1/enums.json', 'enums.json', version),
         ...locales.map(lang=>DownloadLatest('https://api.hearthstonejson.com/v1/latest/' + lang + '/cards.json', lang + '.json', version))
     ]);
-    return result.some(b=>b);
+    return true;
 }
 function ReadAllData(specificVersion?:string):any[]{
     let version = specificVersion ?? GetLocalVersion();

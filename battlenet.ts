@@ -111,9 +111,9 @@ export async function GetCards(args: any, cachePath?: string){
     console.log(list.length);
     return list;
 }
-export async function GetOneCard(id:number, battlegrounds = false, locale='zh_CN'){
+export async function GetOneCard(id:number|string, battlegrounds = false, locale='zh_CN'){
     try {
-        return GetData('cards/' + id + '?locale=' + locale + (battlegrounds ? '&gameMode=battlegrounds' : ''));
+        return await GetData('cards/' + id + '?locale=' + locale + (battlegrounds ? '&gameMode=battlegrounds' : ''));
     } catch (err) {
         if (err?.response?.status === 404)
             return null;
@@ -192,6 +192,9 @@ export async function Changed(key: Key){
 //#region Image
 async function BattlegroundsGoldenImage(id:number):Promise<[string, string]>{
     let goldenCard = await GetOneCard(id, true);
+    if (goldenCard === null){ // 有金卡id但没有金卡数据
+        return [id.toString(), ''];
+    }
     let url = goldenCard['battlegrounds']['imageGold'];
     if (!url){
         console.log(id);
@@ -220,7 +223,12 @@ async function MakeImgListForDiff(){
         if (!card.battlegrounds) console.log(card);
         img_list.push(['img/battlenet/card ' + id + ' bg.png', card.battlegrounds.image]);
         let [goldId, goldUrl] = await BattlegroundsGoldenImage(card['battlegrounds']['upgradeId']);
-        img_list.push(['img/battlenet/card ' + goldId + ' bg.png', goldUrl]);
+        if (!goldUrl){
+            console.warn(card.id + '对应的金卡' + card['battlegrounds']['upgradeId'] + '不存在');
+        }
+        else{
+            img_list.push(['img/battlenet/card ' + goldId + ' bg.png', goldUrl]);
+        }
     }
     utils.List2File('imgList.txt', img_list);
     console.log('file has been written to:\n\t.\\imgList.txt');
@@ -279,7 +287,7 @@ async function GetRelated(list: any[]){
     }
     return Array.from(needIds.values());
 }
-export function DiffAll(date?:string){
+export async function DiffAll(date?:string){
     function CardDifferent(a:any, b:any):string[]|null{
         for (let k of ['name', 'text', 'flavorText', 'manaCost', 'attack', 'health', 'cardTypeId', 'cardSetId', 'rarityId', 'classId', 'minionTypeId']){
             if (utils.ValueDifferent(a[k], b[k])) {
@@ -289,6 +297,7 @@ export function DiffAll(date?:string){
         return null;
     }
     let curDir = path.resolve(DataDir, date ?? Today);
+    fs.writeFileSync('./删除.txt', '');
     for (let filename in Key){
         let curPath = path.resolve(curDir, filename + '.json');
         if (!fs.existsSync(curPath)){
@@ -340,7 +349,7 @@ export function DiffAll(date?:string){
             console.log('file has been written to:\n\t' + xlsxPath)
         }
     }
-    MakeImgListForDiff();
+    await MakeImgListForDiff();
 }
 export function MakeJSON(){
     let dir = './json/battlenet';
@@ -364,6 +373,7 @@ export function MakeJSON(){
             bg_upgrade[up_id] = card.id;
         }
     }
+    console.log('start writing json...');
     for(let card of all){
         let id = card.id;
         if(!id){
@@ -399,6 +409,7 @@ export function MakeJSON(){
         if (fs.existsSync(filePath) && fs.readFileSync(filePath).toString() === json_s) continue;
         fs.writeFileSync(filePath, JSON.stringify(json));
     }
+    console.log('files has been written to:\n\t' + dir)
 }
 export function Headers(){
     let all:any[] = ReadAllLanguage('all').concat(ReadHeros());

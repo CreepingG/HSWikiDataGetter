@@ -51,7 +51,7 @@ export function Download(url: string, filePath: string, args:{
 
 export const Wait = (ms:number) => new Promise((resolve)=>{
     setTimeout(()=>{
-        resolve();
+        resolve(undefined);
     }, ms);
 });
 
@@ -182,10 +182,10 @@ export async function MakeXlsx(input:any, xlsxPath:string = ''){
         ws.addRow(row);
     }
     await wb.xlsx.writeFile(xlsxPath);
-    console.log('file has been written to ' + xlsxPath);
+    console.log('file has been written to\n\t' + xlsxPath);
 }
 export function File2List(path:string){
-    return fs.readFileSync(path).toString().split('\n').map(line=>line.split(','))
+    return fs.readFileSync(path).toString().split('\n').filter(s=>!!s).map(line=>line.split(','))
 }
 export function List2File(path:string, list:string[][]){
     fs.writeFileSync(path, list.map(pair=>pair.join(',')).join('\n'));
@@ -225,7 +225,7 @@ export function GetValue(obj:any, key:string){
     }
     return val;
 }
-export function SetValue(obj:any, key:string, value:any){
+export function SetValue(obj:any, key:string, value:any=null){
     let split = key.split('.');
     let k;
     let v = obj;
@@ -234,7 +234,7 @@ export function SetValue(obj:any, key:string, value:any){
         if(!(k in v)) v[k] = {};
         v = v[k];
     }
-    v[<string>split.pop()] = value;
+    if (value !== null) v[<string>split.pop()] = value;
 }
 //#endregion
 

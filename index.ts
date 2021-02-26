@@ -6,7 +6,7 @@ import {Key} from './battlenet';
 import * as HsJson from './hsjson';
 
 async function MakePage(){
-    const exclusion = ['德鲁伊','猎人','法师','圣骑士','牧师','潜行者','萨满祭司','术士','战士', '法术伤害', '变形术：??','[TEMP]'];
+    const exclusion = ['德鲁伊','猎人','法师','圣骑士','牧师','潜行者','萨满祭司','术士','战士', '法术伤害', '变形术：??','[TEMP]', '沉默', '风怒', '冲锋', '变形', '激怒', '战吼', '奥丹姆奇兵'];
     let list = [...Battlenet.Headers(), ...HsJson.Headers()];
     let pageMap:{[k:string]:Set<string>} = {};
     let wb = new Excel.Workbook();
@@ -36,6 +36,7 @@ async function MakePage(){
         ws.addRow([name, text]);
     }
     await wb.xlsx.writeFile('重定向.xlsx');
+    console.log('file has been written to\n\t重定向.xlsx');
 
     wb = new Excel.Workbook();
     ws = wb.addWorksheet('1');
@@ -51,21 +52,22 @@ async function MakePage(){
             ws.addRow([link, header.id, header.name, header.bg ? '1':'']);
     }
     await wb.xlsx.writeFile('模板.xlsx');
+    console.log('file has been written to\n\t模板.xlsx');
 }
 
 (async function main(){
-    //console.log(await Battlenet.GetOneCard(64484));
+    //console.log(await Battlenet.GetOneCard('91223-the-great-akazamzarak'));
     /*let changed = await Promise.all([Battlenet.Changed(Key.all), Battlenet.Changed(Key.battlegrounds)]);
-    changed[0] = true;
+    //changed[0] = true;
     if (changed[0] || changed[1]){
         await Battlenet.DownloadMetadata();
         if (changed[0]) await Battlenet.DownloadAllLanguage(Key.all);
         if (changed[1]) await Battlenet.DownloadAllLanguage(Key.battlegrounds);
-        Battlenet.DiffAll();
+        await Battlenet.DiffAll();
         Battlenet.MakeJSON();
     }*/
-    /*
-    if (await HsJson.DownloadAll()){
+    
+    /*if (await HsJson.DownloadAll()){
         HsJson.DiffAll();
         HsJson.MakeJSON();
     }*/
