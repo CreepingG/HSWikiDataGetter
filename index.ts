@@ -6,7 +6,8 @@ import {Key} from './battlenet';
 import * as HsJson from './hsjson';
 
 async function MakePage(){
-    const exclusion = ['德鲁伊','猎人','法师','圣骑士','牧师','潜行者','萨满祭司','术士','战士', '法术伤害', '变形术：??','[TEMP]', '沉默', '风怒', '冲锋', '变形', '激怒', '战吼', '奥丹姆奇兵'];
+    const exclusion = ['德鲁伊','猎人','法师','圣骑士','牧师','潜行者','萨满祭司','术士','战士', 
+        '法术伤害','沉默', '风怒', '冲锋', '变形', '激怒', '战吼', '奥丹姆奇兵'];
     let list = [...Battlenet.Headers(), ...HsJson.Headers()];
     let pageMap:{[k:string]:Set<string>} = {};
     let wb = new Excel.Workbook();
@@ -14,7 +15,7 @@ async function MakePage(){
     list.forEach(h=>{
         let name = h.name;
         let link = h.id + (h.bg ? ' bg':'');
-        if (exclusion.includes(name)) return;
+        if (exclusion.includes(name) || name.match(/[[?]/)) return;
         if (!(name in pageMap)) pageMap[name] = new Set();
         pageMap[name].add(link);
     });
@@ -56,7 +57,7 @@ async function MakePage(){
 }
 
 (async function main(){
-    //console.log(await Battlenet.GetOneCard('91223-the-great-akazamzarak'));
+    //console.log(await Battlenet.GetOneCard('72250'));
     /*let changed = await Promise.all([Battlenet.Changed(Key.all), Battlenet.Changed(Key.battlegrounds)]);
     //changed[0] = true;
     if (changed[0] || changed[1]){
@@ -72,7 +73,7 @@ async function MakePage(){
         HsJson.MakeJSON();
     }*/
     
-    //MakePage();
+    MakePage();
 
     //utils.SplitDownloadList(250);
     //await utils.DownloadAll();

@@ -97,7 +97,7 @@ export async function GetCards(args: any, cachePath?: string){
             }
             catch(err){
                 console.log(err);
-                await utils.Wait(2000);
+                await utils.Wait(10000);
                 continue;
             }
             break;
@@ -289,7 +289,7 @@ async function GetRelated(list: any[]){
 }
 export async function DiffAll(date?:string){
     function CardDifferent(a:any, b:any):string[]|null{
-        for (let k of ['name', 'text', 'flavorText', 'manaCost', 'attack', 'health', 'cardTypeId', 'cardSetId', 'rarityId', 'classId', 'minionTypeId']){
+        for (let k of ['name', 'text', 'flavorText', 'manaCost', 'attack', 'health', 'cardTypeId', 'cardSetId', 'rarityId', 'classId', 'minionTypeId', 'spellSchoolId']){
             if (utils.ValueDifferent(a[k], b[k])) {
                 return [b.id, b.name, k, a[k], b[k]];
             };

@@ -89,7 +89,7 @@ export async function DownloadAll(li?:string[][], args:{
                     fs.appendFileSync(filename_404, path + ',' + url + '\n');
                 }
             }, (err)=>{
-                console.warn(err.message || err.code || err);
+                console.warn(err.message || err.code || err, path);
                 list.unshift([path, url]);
                 fs.appendFileSync(filename_err, path + ',' + url + '\n');
                 try{ fs.unlinkSync(path);} catch(e){}
@@ -185,9 +185,11 @@ export async function MakeXlsx(input:any, xlsxPath:string = ''){
     console.log('file has been written to\n\t' + xlsxPath);
 }
 export function File2List(path:string){
+    if (!fs.existsSync(path)) return [];
     return fs.readFileSync(path).toString().split('\n').filter(s=>!!s).map(line=>line.split(','))
 }
 export function List2File(path:string, list:string[][]){
+    if (!list) return;
     fs.writeFileSync(path, list.map(pair=>pair.join(',')).join('\n'));
 }
 //#endregion
